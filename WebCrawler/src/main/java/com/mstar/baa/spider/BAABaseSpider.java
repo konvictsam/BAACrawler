@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.baa.mstar.spider.interfaces.Crawlable;
+import com.mstar.baa.spider.interfaces.Crawlable;
 
 
 public abstract class BAABaseSpider implements Crawlable{

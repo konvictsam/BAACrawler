@@ -1,4 +1,4 @@
-package com.baa.mstar.spider.interfaces;
+package com.mstar.baa.spider.interfaces;
 
 import java.util.List;
 
