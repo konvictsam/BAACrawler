@@ -52,7 +52,7 @@ public class App extends BAASeleniumSpider
 
 	public static void main( String[] args )
 	{
-		try
+		try 
 		{
 			App a = new App();
 			a.setDriver(Drivers.HEADLESSCHROME); 
