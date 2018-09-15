@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * 
- * @author Asus
+ * @author Sameer Gaware
  *
  */
 public class App extends BAASeleniumSpider
@@ -56,11 +56,17 @@ public class App extends BAASeleniumSpider
 		{
 			App a = new App();
 			a.setDriver(Drivers.HEADLESSCHROME); 
-			a.start("https://www.globalviews.com/categories", 0);
+			a.start("https://www.globalviews.com/categories", 10);
 			a.setExtractLinkFromDataPage(false); 
 		} catch(Exception ae) {
 
 			ae.printStackTrace(); 
 		}
+	}
+
+	@Override
+	public void mainPhase(String url, String body) {
+		// TODO Auto-generated method stub
+
 	}
 }

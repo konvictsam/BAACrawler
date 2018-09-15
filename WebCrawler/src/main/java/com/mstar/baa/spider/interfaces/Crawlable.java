@@ -2,6 +2,12 @@ package com.mstar.baa.spider.interfaces;
 
 import java.util.List;
 
+import org.openqa.selenium.WebDriver;
+/**
+ * 
+ * @author Sameer Gaware
+ *
+ */
 public interface Crawlable {
 
 	public String getBody(String url);

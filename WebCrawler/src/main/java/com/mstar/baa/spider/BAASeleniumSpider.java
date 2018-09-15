@@ -1,13 +1,13 @@
 package com.mstar.baa.spider;
 
+import static com.mstar.baa.utilities.BAASpiderUtility.nullOrZero;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collector;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.openqa.selenium.By;
@@ -16,23 +16,23 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
-import static com.mstar.baa.utilities.BAASpiderUtility.*;
-
 /**
  * 
- * 
- * @author Asus
+ * @author Sameer Gaware
  *
  */
-public class BAASeleniumSpider extends BAABaseSpider{
+public abstract class BAASeleniumSpider extends BAABaseSpider{
 
 	private String chromeDriverPath = null;  
 	private WebDriver driver = null;
+	private WebDriver webDrivers[] = new WebDriver[10]; 
 	private Drivers currentDriver = null;
 	//private BlockingQueue<String> linksToVisit = null;
-	private Queue<String> linksToVisit = null;
+	private BlockingQueue<String> linksToVisit = null;
 	private String mainPageBody = null;
 	List<String> allLinks = null;
+	private int threadCount = 0;
+	private ChromeOptions options = null;
 
 	public BAASeleniumSpider() {
 		currentDriver = Drivers.HEADLESSCHROME;
@@ -58,7 +58,7 @@ public class BAASeleniumSpider extends BAABaseSpider{
 		try {
 
 			//linksToVisit = new ArrayBlockingQueue<String>(1000);
-			linksToVisit = new PriorityQueue<>();
+			linksToVisit = new ArrayBlockingQueue<>(1000);
 			linksToVisit.add(startLink); 
 			allLinks = new CopyOnWriteArrayList<>();
 
@@ -66,7 +66,7 @@ public class BAASeleniumSpider extends BAABaseSpider{
 
 			chromeDriverPath = "E:\\Chrome Driver\\chromedriver.exe" ;  
 			System.setProperty("webdriver.chrome.driver", chromeDriverPath);  
-			ChromeOptions options = new ChromeOptions();
+			options = new ChromeOptions();
 			options.addArguments("--headless", "--disable-gpu", "--window-size=1920,1200","--ignore-certificate-errors");
 
 			driver = new ChromeDriver(options);
@@ -76,11 +76,6 @@ public class BAASeleniumSpider extends BAABaseSpider{
 		}
 	}
 
-	@Override
-	public void mainPhase(String url, String body) {
-		// TODO Auto-generated method stub
-
-	}
 
 	@Override
 	public void postPhase(String url, String body) {
@@ -88,33 +83,28 @@ public class BAASeleniumSpider extends BAABaseSpider{
 
 	}
 
-	@Override
-	public boolean isTraversalPage(String url) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean isDataPage(String link) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
+	
 	@Override
 	public List<String> extractURLPhase(String url, String body) {
+		// TODO Auto-generated method stub
+		return super.extractURLPhase(url, body);
+	}
+	
+	
+	public List<String> extractURLPhase(String url, String body, WebDriver webDrivers2) {
 
 		List<String> links = new ArrayList<>();
 
 		if(skipExtractLinkPhase)
-			return links;
+			return links; 
 
 		if(!setExtractLinkFromDataPage && isDataPage(url))
 			return links;
 
-		driver.get(url); 
+		webDrivers2.get(url); 
 		System.out.println("Extracting link from : "+url); 
 
-		List<WebElement> allElements = driver.findElements(By.tagName("a"));
+		List<WebElement> allElements = webDrivers2.findElements(By.tagName("a"));
 		if(!nullOrZero(allElements)) {
 			for(WebElement we : allElements) {
 				String link = we.getAttribute("href");
@@ -132,9 +122,37 @@ public class BAASeleniumSpider extends BAABaseSpider{
 		return links;
 	}
 
-	private void extractAllUrls() {
+	private void extractAllUrls() throws InterruptedException {
+		
+		int ind = 0;
+		for(int index = 0 ; index < threadCount ; index++) {
+			ind = index;
+			webDrivers[index] = new ChromeDriver(options);
+			WebDriver wdr = webDrivers[index]; 
+			Thread  worker = new Thread(() -> {
+				while(!linksToVisit.isEmpty()) {
+					String link = linksToVisit.peek();
+					
+					List<String> links = extractURLPhase(link, null, wdr);
 
-		while(!linksToVisit.isEmpty()) {
+					if(!nullOrZero(links)) {
+						List<String> traversalLinks = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList());
+						List<String> dataLinks = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList());
+						dataLinks.stream().forEach(element -> linkToCache.put(element, "")); 
+						linksToVisit.addAll(traversalLinks);
+						
+					}
+
+					System.out.println("Removing "+link+" from queue "+linksToVisit.size()+" "); 
+					linksToVisit.poll();
+				}
+				wdr.close();
+			});
+
+			worker.start();
+		}
+		
+		/*while(!linksToVisit.isEmpty()) {
 			String link = linksToVisit.peek();
 			List<String> links = extractURLPhase(link, null);
 
@@ -145,24 +163,29 @@ public class BAASeleniumSpider extends BAABaseSpider{
 
 			System.out.println("Removing "+link+" from queue "+linksToVisit.size()+" "); 
 			linksToVisit.poll();
-		}
+		}*/
 	}
 
 	@Override
 	public void start(String startLink, int threadCount) {
 
 		this.startLink = startLink;
+		this.threadCount = threadCount;
 		switch (currentDriver) {
 		case HEADLESSCHROME: {
 
 			//			driver.quit();
+			try
+			{
 			preparePhase();
 			String body = getBody(startLink);
 			extractAllUrls();
 
 			System.out.println("Finished Extract link phase"); 
 			//ExecutorService ex = Executors.newFixedThreadPool(threadCount);
-
+			}catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 
 		break;

@@ -1,11 +1,6 @@
 package com.mstar.WebCrawler;
 
-import static com.mstar.baa.utilities.BAASpiderUtility.*;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -25,9 +20,12 @@ public class AppTest
 		//options.addArguments("--headless", "--disable-gpu", "--window-size=1920,1200","--ignore-certificate-errors");
 
 		WebDriver driver = new ChromeDriver(options);
-		
-		
-		
+
+		while(true) {
+			Thread t = new Thread(() -> {driver.get("https://www.globalviews.com/"); driver.findElements(By.tagName("a"));});
+			t.start();
+		}
+
 	}
-    
+
 }
