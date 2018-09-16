@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -21,13 +23,12 @@ import org.openqa.selenium.chrome.ChromeOptions;
  * @author Sameer Gaware
  *
  */
-public abstract class BAASeleniumSpider extends BAABaseSpider{
+public abstract class BAASeleniumSpider extends BAABaseSpider {
 
 	private String chromeDriverPath = null;  
 	private WebDriver driver = null;
 	private WebDriver webDrivers[] = new WebDriver[10]; 
 	private Drivers currentDriver = null;
-	//private BlockingQueue<String> linksToVisit = null;
 	private BlockingQueue<String> linksToVisit = null;
 	private String mainPageBody = null;
 	List<String> allLinks = null;
@@ -57,7 +58,6 @@ public abstract class BAASeleniumSpider extends BAABaseSpider{
 
 		try {
 
-			//linksToVisit = new ArrayBlockingQueue<String>(1000);
 			linksToVisit = new ArrayBlockingQueue<>(1000);
 			linksToVisit.add(startLink); 
 			allLinks = new CopyOnWriteArrayList<>();
@@ -83,17 +83,20 @@ public abstract class BAASeleniumSpider extends BAABaseSpider{
 
 	}
 
-	
+
 	@Override
 	public List<String> extractURLPhase(String url, String body) {
 		// TODO Auto-generated method stub
-		return super.extractURLPhase(url, body);
+		return extractURLPhase(url, body,null);
 	}
-	
-	
+
+
 	public List<String> extractURLPhase(String url, String body, WebDriver webDrivers2) {
 
 		List<String> links = new ArrayList<>();
+
+		if(webDrivers2 == null)
+			return links;
 
 		if(skipExtractLinkPhase)
 			return links; 
@@ -122,48 +125,31 @@ public abstract class BAASeleniumSpider extends BAABaseSpider{
 		return links;
 	}
 
-	private void extractAllUrls() throws InterruptedException {
-		
-		int ind = 0;
+	private void extractURLPhase() throws InterruptedException {
 		for(int index = 0 ; index < threadCount ; index++) {
-			ind = index;
 			webDrivers[index] = new ChromeDriver(options);
 			WebDriver wdr = webDrivers[index]; 
-			Thread  worker = new Thread(() -> {
+
+			executorService.submit(() -> {
 				while(!linksToVisit.isEmpty()) {
 					String link = linksToVisit.peek();
-					
-					List<String> links = extractURLPhase(link, null, wdr);
 
+					List<String> links = extractURLPhase(link, null, wdr);
 					if(!nullOrZero(links)) {
 						List<String> traversalLinks = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList());
 						List<String> dataLinks = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList());
-						dataLinks.stream().forEach(element -> linkToCache.put(element, "")); 
+						dataLinks.stream().forEach(element -> linkToCache.put(element, ""));
 						linksToVisit.addAll(traversalLinks);
-						
 					}
-
 					System.out.println("Removing "+link+" from queue "+linksToVisit.size()+" "); 
 					linksToVisit.poll();
 				}
 				wdr.close();
 			});
-
-			worker.start();
 		}
-		
-		/*while(!linksToVisit.isEmpty()) {
-			String link = linksToVisit.peek();
-			List<String> links = extractURLPhase(link, null);
-
-			if(!nullOrZero(links)) {
-				links = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList()); 
-				linksToVisit.addAll(links);
-			}
-
-			System.out.println("Removing "+link+" from queue "+linksToVisit.size()+" "); 
-			linksToVisit.poll();
-		}*/
+		executorService.shutdown();
+		executorService.awaitTermination(1,TimeUnit.DAYS); 
+		System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages"); 
 	}
 
 	@Override
@@ -171,18 +157,19 @@ public abstract class BAASeleniumSpider extends BAABaseSpider{
 
 		this.startLink = startLink;
 		this.threadCount = threadCount;
+		executorService = Executors.newFixedThreadPool(threadCount);
+
 		switch (currentDriver) {
 		case HEADLESSCHROME: {
 
 			//			driver.quit();
 			try
 			{
-			preparePhase();
-			String body = getBody(startLink);
-			extractAllUrls();
+				preparePhase();
+				extractURLPhase();
+				mainPhase();
 
-			System.out.println("Finished Extract link phase"); 
-			//ExecutorService ex = Executors.newFixedThreadPool(threadCount);
+				System.out.println("Finished Extract link phase"); 
 			}catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -196,6 +183,13 @@ public abstract class BAASeleniumSpider extends BAABaseSpider{
 		break;
 		}
 
+	}
+
+	private void mainPhase() {
+
+
+
+		System.out.println("Inside main Phase");  
 	}
 
 }

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutorService;
 
 import org.openqa.selenium.WebDriver;
 
@@ -24,6 +25,7 @@ public abstract class BAABaseSpider implements Crawlable{
 	protected boolean setExtractLinkFromDataPage = false;
 	protected Map<String,String> linkToCache = new ConcurrentSkipListMap<>();
 	protected String startLink = null;
+	protected ExecutorService executorService = null;
 
 	@Override
 	public List<String> extractURLPhase(String url, String body) {
