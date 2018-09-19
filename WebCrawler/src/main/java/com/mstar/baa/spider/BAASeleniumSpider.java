@@ -4,12 +4,13 @@ import static com.mstar.baa.utilities.BAASpiderUtility.nullOrZero;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.openqa.selenium.By;
@@ -30,15 +31,21 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 	private WebDriver webDrivers[] = new WebDriver[10]; 
 	private Drivers currentDriver = null;
 	private BlockingQueue<String> linksToVisit = null;
+	private Queue<String> dataLinkQueue = null; 
 	private String mainPageBody = null;
 	List<String> allLinks = null;
-	private int threadCount = 0;
+	private int threadCount = 1;
 	private ChromeOptions options = null;
+
 
 	public BAASeleniumSpider() {
 		currentDriver = Drivers.HEADLESSCHROME;
 	}
 
+	/**
+	 * 
+	 * @param currentDriver
+	 */
 	public void setDriver(Drivers currentDriver)
 	{
 		this.currentDriver = currentDriver;
@@ -61,6 +68,7 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 			linksToVisit = new ArrayBlockingQueue<>(1000);
 			linksToVisit.add(startLink); 
 			allLinks = new CopyOnWriteArrayList<>();
+			dataLinkQueue = new ConcurrentLinkedQueue<String>();
 
 			System.out.println("Inside Headless chrome");
 
@@ -70,6 +78,10 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 			options.addArguments("--headless", "--disable-gpu", "--window-size=1920,1200","--ignore-certificate-errors");
 
 			driver = new ChromeDriver(options);
+
+			for(int index = 1 ; index<=threadCount ; index++) {
+				webDrivers[index-1] = new ChromeDriver(options);
+			}
 
 		}	catch(Exception  e) {
 
@@ -127,7 +139,7 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 
 	private void extractURLPhase() throws InterruptedException {
 		for(int index = 0 ; index < threadCount ; index++) {
-			webDrivers[index] = new ChromeDriver(options);
+			//webDrivers[index] = new ChromeDriver(options);
 			WebDriver wdr = webDrivers[index]; 
 
 			executorService.submit(() -> {
@@ -144,7 +156,8 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 					System.out.println("Removing "+link+" from queue "+linksToVisit.size()+" "); 
 					linksToVisit.poll();
 				}
-				wdr.close();
+				/*Better to close it after main phase*/
+				//wdr.close();
 			});
 		}
 		executorService.shutdown();
@@ -162,14 +175,13 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 		switch (currentDriver) {
 		case HEADLESSCHROME: {
 
-			//			driver.quit();
-			try
-			{
+			try {
 				preparePhase();
 				extractURLPhase();
 				mainPhase();
 
-				System.out.println("Finished Extract link phase"); 
+				System.out.println("Finished Extract link phase");
+				
 			}catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -179,17 +191,39 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 		case CHROME: {
 
 		}
-
 		break;
 		}
-
 	}
 
-	private void mainPhase() {
+	private void mainPhase() throws InterruptedException {
+		
+		//add data links in dataLinkQueue for processing
+		executorService = Executors.newFixedThreadPool(threadCount);
+		dataLinkQueue.addAll(linkToCache.keySet());
+		
+		
+		for(int index = 0 ; index < threadCount ; index++) {
+			//webDrivers[index] = new ChromeDriver(options);
+			WebDriver wdr = webDrivers[index]; 
+			
+			executorService.submit(() -> {
+				while(!dataLinkQueue.isEmpty()) {
+					String link = dataLinkQueue.peek();
 
-
-
-		System.out.println("Inside main Phase");  
+					wdr.get(link); 
+					linkToCache.put(link, wdr.getPageSource());
+					
+					System.out.println("Main Phase "+link+" remaining "+dataLinkQueue.size()+" "); 
+					dataLinkQueue.poll();
+				} 
+				wdr.close();
+			});
+			
+		}
+		executorService.shutdown();
+		executorService.awaitTermination(1,TimeUnit.DAYS);  
+		System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages"); 
+		System.out.println("Finished main Phase");  
 	}
 
 }
