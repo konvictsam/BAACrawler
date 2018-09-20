@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class App extends BAASeleniumSpider
 {
-
+	
 	@Override
 	public boolean isTraversalPage(String url) {
 		return !nullOrZero(url) && url.startsWith("https://www.globalviews.com/categories/"); 
@@ -55,9 +55,11 @@ public class App extends BAASeleniumSpider
 		try 
 		{
 			App a = new App();
+			a.setName("GLOBAL_VIEW");
 			a.setDriver(Drivers.HEADLESSCHROME); 
 			a.start("https://www.globalviews.com/categories", 10);
 			a.setExtractLinkFromDataPage(false); 
+			
 		} catch(Exception ae) {
 
 			ae.printStackTrace(); 

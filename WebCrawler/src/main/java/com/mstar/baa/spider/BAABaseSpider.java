@@ -1,5 +1,6 @@
 package com.mstar.baa.spider;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,7 +17,7 @@ import com.mstar.baa.spider.interfaces.Crawlable;
  *
  */
 public abstract class BAABaseSpider implements Crawlable{
-	
+
 	public static String NAME = null;
 	protected String body = null;
 	protected boolean  isTraversalPage = false;
@@ -26,17 +27,25 @@ public abstract class BAABaseSpider implements Crawlable{
 	protected Map<String,String> linkToCache = new ConcurrentSkipListMap<>();
 	protected String startLink = null;
 	protected ExecutorService executorService = null;
+	protected int cacheCount = 0;
+	protected String path = "E:/web_crawler";
+	protected String cacheDirectory = null;
 
 	@Override
 	public List<String> extractURLPhase(String url, String body) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
 	public void setSkipExtractLinkPhase(boolean skipExtractLinkPhase) {
 		this.skipExtractLinkPhase = skipExtractLinkPhase;
 
+	}
+
+	public File getCacheDirectory() {
+		cacheDirectory = path+"/"+NAME; 
+		return new File(cacheDirectory);
 	}
 
 	@Override
@@ -44,10 +53,10 @@ public abstract class BAABaseSpider implements Crawlable{
 		this.setExtractLinkFromDataPage = setExtractLinkFromDataPage;
 
 	}
-	
+
 	@Override
 	public String normalizeURL(String url) {
-		
+
 		url = url.toLowerCase();
 		return url;
 	}

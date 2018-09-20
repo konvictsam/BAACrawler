@@ -2,6 +2,12 @@ package com.mstar.baa.spider;
 
 import static com.mstar.baa.utilities.BAASpiderUtility.nullOrZero;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
@@ -36,10 +42,16 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 	List<String> allLinks = null;
 	private int threadCount = 1;
 	private ChromeOptions options = null;
-
+	Object cacheCountLock = new Object();
+	private File cacheFile = null;
 
 	public BAASeleniumSpider() {
 		currentDriver = Drivers.HEADLESSCHROME;
+	}
+
+	@Override
+	public void setName(String name) {
+		NAME = name;
 	}
 
 	/**
@@ -69,9 +81,14 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 			linksToVisit.add(startLink); 
 			allLinks = new CopyOnWriteArrayList<>();
 			dataLinkQueue = new ConcurrentLinkedQueue<String>();
+			cacheFile = getCacheDirectory();
+
+			if(!cacheFile.exists())
+				cacheFile.mkdir();
 
 			System.out.println("Inside Headless chrome");
 
+			//TODO : find better way to have dynamic path
 			chromeDriverPath = "E:\\Chrome Driver\\chromedriver.exe" ;  
 			System.setProperty("webdriver.chrome.driver", chromeDriverPath);  
 			options = new ChromeOptions();
@@ -149,8 +166,8 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 					List<String> links = extractURLPhase(link, null, wdr);
 					if(!nullOrZero(links)) {
 						List<String> traversalLinks = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList());
-						List<String> dataLinks = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList());
-						dataLinks.stream().forEach(element -> linkToCache.put(element, ""));
+						List<String> dataLinks = links.stream().filter(element -> isDataPage(element)).collect(Collectors.toList());
+						dataLinks.stream().forEach(element -> linkToCache.put(element, "")); 
 						linksToVisit.addAll(traversalLinks);
 					}
 					System.out.println("Removing "+link+" from queue "+linksToVisit.size()+" "); 
@@ -181,7 +198,7 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 				mainPhase();
 
 				System.out.println("Finished Extract link phase");
-				
+
 			}catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -195,35 +212,55 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 		}
 	}
 
-	private void mainPhase() throws InterruptedException {
-		
+	private void mainPhase() throws InterruptedException, IOException {
+
 		//add data links in dataLinkQueue for processing
 		executorService = Executors.newFixedThreadPool(threadCount);
 		dataLinkQueue.addAll(linkToCache.keySet());
-		
-		
+
+
 		for(int index = 0 ; index < threadCount ; index++) {
 			//webDrivers[index] = new ChromeDriver(options);
 			WebDriver wdr = webDrivers[index]; 
-			
+
 			executorService.submit(() -> {
 				while(!dataLinkQueue.isEmpty()) {
-					String link = dataLinkQueue.peek();
+					String link = dataLinkQueue.peek(); 
 
-					wdr.get(link); 
-					linkToCache.put(link, wdr.getPageSource());
-					
+					wdr.get(link);
+					String pageSource = wdr.getPageSource();
+					synchronized (cacheCountLock) {
+						try {
+
+							Files.write(Paths.get(cacheFile.getAbsolutePath(),"/"+(++cacheCount)+".html"), pageSource.getBytes());
+
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+						linkToCache.put(link, wdr.getPageSource());
+					}
+
 					System.out.println("Main Phase "+link+" remaining "+dataLinkQueue.size()+" "); 
 					dataLinkQueue.poll();
 				} 
 				wdr.close();
 			});
-			
-		}
-		executorService.shutdown();
-		executorService.awaitTermination(1,TimeUnit.DAYS);  
-		System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages"); 
-		System.out.println("Finished main Phase");  
-	}
 
+
+			BufferedWriter br = new BufferedWriter(new FileWriter(new File(cacheFile, "cache.dat"))); 
+
+			executorService.shutdown();
+			executorService.awaitTermination(1,TimeUnit.DAYS);
+
+			for(String key : linkToCache.keySet()) {
+
+				br.write(key+"`"+linkToCache.get(key)); 
+				br.newLine();
+			}
+			br.flush();
+			br.close();
+			System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages"); 
+			System.out.println("Finished main Phase");  
+		}
+	}
 }

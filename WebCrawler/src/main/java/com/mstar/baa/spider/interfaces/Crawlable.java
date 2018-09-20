@@ -11,6 +11,7 @@ import org.openqa.selenium.WebDriver;
 public interface Crawlable {
 
 	public String getBody(String url);
+	public void setName(String name);
 	public void preparePhase();
 	public List<String> extractURLPhase(String url,String body);
 	public void mainPhase(String url,String body);
