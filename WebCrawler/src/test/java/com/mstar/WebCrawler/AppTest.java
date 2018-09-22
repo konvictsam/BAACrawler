@@ -1,5 +1,9 @@
 package com.mstar.WebCrawler;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -12,7 +16,7 @@ public class AppTest
 {
 	public static void main(String argsp[])
 	{
-		System.out.println("Inside Headless chrome");
+		/*System.out.println("Inside Headless chrome");
 
 		String chromeDriverPath = "E:\\Chrome Driver\\chromedriver.exe" ;  
 		System.setProperty("webdriver.chrome.driver", chromeDriverPath);  
@@ -24,8 +28,11 @@ public class AppTest
 		while(true) {
 			Thread t = new Thread(() -> {driver.get("https://www.globalviews.com/"); driver.findElements(By.tagName("a"));});
 			t.start();
-		}
+		}*/
 
+		List<String> list = Arrays.asList("asfdkjsdf","asdasdasd","sadasdsa","Sam");
+		List<String> fiiltered = list.stream().filter(element -> element.startsWith("Sam")).collect(Collectors.toList()); 
+		System.out.println(fiiltered); 
 	}
 
 }

@@ -14,6 +14,8 @@ import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -82,6 +84,8 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 			allLinks = new CopyOnWriteArrayList<>();
 			dataLinkQueue = new ConcurrentLinkedQueue<String>();
 			cacheFile = getCacheDirectory();
+			linkToCache = new ConcurrentSkipListMap<>();
+			visitedLinks = new ConcurrentSkipListSet<>();
 
 			if(!cacheFile.exists())
 				cacheFile.mkdir();
@@ -144,9 +148,9 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 
 				if(nullOrZero(link))
 					continue;
-				if((isDataPage(link) || isTraversalPage(link)) && !linkToCache.containsKey(link)) {
+				if((isDataPage(link) || isTraversalPage(link)) && !visitedLinks.contains(link)) {
 					links.add(link);
-					linkToCache.put(link, "");
+					visitedLinks.add(link);
 					System.out.println("	"+link); 
 				}
 			}
@@ -156,30 +160,36 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 
 	private void extractURLPhase() throws InterruptedException {
 		for(int index = 0 ; index < threadCount ; index++) {
-			//webDrivers[index] = new ChromeDriver(options);
 			WebDriver wdr = webDrivers[index]; 
 
 			executorService.submit(() -> {
 				while(!linksToVisit.isEmpty()) {
 					String link = linksToVisit.peek();
-
+					System.out.println("Thread : "+Thread.currentThread()); 
 					List<String> links = extractURLPhase(link, null, wdr);
 					if(!nullOrZero(links)) {
 						List<String> traversalLinks = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList());
-						List<String> dataLinks = links.stream().filter(element -> isDataPage(element)).collect(Collectors.toList());
-						dataLinks.stream().forEach(element -> linkToCache.put(element, "")); 
+						List<String> dataLinks = links.stream().filter(element1 -> isDataPage(element1)).collect(Collectors.toList());
+
+						dataLinks.stream().forEach(element1 -> linkToCache.put(element1, "")); 
+
 						linksToVisit.addAll(traversalLinks);
 					}
 					System.out.println("Removing "+link+" from queue "+linksToVisit.size()+" "); 
 					linksToVisit.poll();
 				}
-				/*Better to close it after main phase*/
-				//wdr.close();
 			});
 		}
+
 		executorService.shutdown();
 		executorService.awaitTermination(1,TimeUnit.DAYS); 
-		System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages"); 
+		System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages");
+		//Testing
+		for(String element : linkToCache.keySet() )
+		{
+			System.out.println(" linK : "+element); 
+
+		}
 	}
 
 	@Override
@@ -220,47 +230,48 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 
 
 		for(int index = 0 ; index < threadCount ; index++) {
-			//webDrivers[index] = new ChromeDriver(options);
+
 			WebDriver wdr = webDrivers[index]; 
 
 			executorService.submit(() -> {
 				while(!dataLinkQueue.isEmpty()) {
-					String link = dataLinkQueue.peek(); 
+					String link = dataLinkQueue.poll();
 
 					wdr.get(link);
 					String pageSource = wdr.getPageSource();
-					synchronized (cacheCountLock) {
-						try {
 
-							Files.write(Paths.get(cacheFile.getAbsolutePath(),"/"+(++cacheCount)+".html"), pageSource.getBytes());
+					try {
+						int currentCacheCount = ++cacheCount;
+						Files.write(Paths.get(cacheFile.getAbsolutePath(),"/"+currentCacheCount+".html"), pageSource.getBytes());
+						linkToCache.put(link, currentCacheCount+".html"); 
 
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-						linkToCache.put(link, wdr.getPageSource());
+					} catch (IOException e) {
+						e.printStackTrace();
 					}
+					
 
-					System.out.println("Main Phase "+link+" remaining "+dataLinkQueue.size()+" "); 
-					dataLinkQueue.poll();
+					System.out.println("Main Phase using "+Thread.currentThread().getName()+" ` "+link+" remaining "+dataLinkQueue.size()+" "); 
+
 				} 
-				wdr.close();
+				//wdr.close();
 			});
 
-
-			BufferedWriter br = new BufferedWriter(new FileWriter(new File(cacheFile, "cache.dat"))); 
-
-			executorService.shutdown();
-			executorService.awaitTermination(1,TimeUnit.DAYS);
-
-			for(String key : linkToCache.keySet()) {
-
-				br.write(key+"`"+linkToCache.get(key)); 
-				br.newLine();
-			}
-			br.flush();
-			br.close();
-			System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages"); 
-			System.out.println("Finished main Phase");  
 		}
+
+		executorService.shutdown();
+		executorService.awaitTermination(1,TimeUnit.DAYS);
+
+		BufferedWriter br = new BufferedWriter(new FileWriter(new File(cacheFile, "cache.dat"))); 
+
+
+		for(String key : linkToCache.keySet()) {
+
+			br.write(key+"`"+linkToCache.get(key)); 
+			br.newLine();
+		}
+		br.flush();
+		br.close();
+		System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages"); 
+		System.out.println("Finished main Phase");  
 	}
 }

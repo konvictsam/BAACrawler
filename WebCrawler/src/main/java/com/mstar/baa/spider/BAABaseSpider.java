@@ -3,6 +3,7 @@ package com.mstar.baa.spider;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
@@ -24,10 +25,11 @@ public abstract class BAABaseSpider implements Crawlable{
 	protected boolean isDataPage = false;
 	protected boolean skipExtractLinkPhase = false;
 	protected boolean setExtractLinkFromDataPage = false;
-	protected Map<String,String> linkToCache = new ConcurrentSkipListMap<>();
+	protected Set<String> visitedLinks = null;
+	protected Map<String,String> linkToCache = null;
 	protected String startLink = null;
 	protected ExecutorService executorService = null;
-	protected int cacheCount = 0;
+	protected volatile int cacheCount = 0;
 	protected String path = "E:/web_crawler";
 	protected String cacheDirectory = null;
 
