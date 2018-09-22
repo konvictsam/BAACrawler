@@ -1,4 +1,4 @@
-package com.mstar.baa.utilities;
+package com.webcrawler.utilities;
 
 import java.util.Arrays;
 import java.util.List;
@@ -7,7 +7,7 @@ import java.util.List;
  * @author Asus
  *
  */
-public  class BAASpiderUtility
+public  class SpiderUtility
 {
 	/**
 	 * 

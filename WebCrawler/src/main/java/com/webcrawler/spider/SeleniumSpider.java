@@ -1,6 +1,6 @@
-package com.mstar.baa.spider;
+package com.webcrawler.spider;
 
-import static com.mstar.baa.utilities.BAASpiderUtility.nullOrZero;
+import static com.webcrawler.utilities.SpiderUtility.nullOrZero;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -32,7 +32,7 @@ import org.openqa.selenium.chrome.ChromeOptions;
  * @author Sameer Gaware
  *
  */
-public abstract class BAASeleniumSpider extends BAABaseSpider {
+public abstract class SeleniumSpider extends BaseSpider {
 
 	private String chromeDriverPath = null;  
 	private WebDriver driver = null;
@@ -47,7 +47,7 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 	Object cacheCountLock = new Object();
 	private File cacheFile = null;
 
-	public BAASeleniumSpider() {
+	public SeleniumSpider() {
 		currentDriver = Drivers.HEADLESSCHROME;
 	}
 
@@ -116,13 +116,20 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 
 	}
 
+	@Override
+	public void cleanUpPhase() {
+
+		for(int index = 0 ; index < threadCount ; index++) {
+			WebDriver wdr = webDrivers[index];
+			wdr.quit();
+		}
+	}
 
 	@Override
 	public List<String> extractURLPhase(String url, String body) {
 		// TODO Auto-generated method stub
 		return extractURLPhase(url, body,null);
 	}
-
 
 	public List<String> extractURLPhase(String url, String body, WebDriver webDrivers2) {
 
@@ -203,7 +210,7 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 		case HEADLESSCHROME: {
 
 			try {
-				preparePhase();
+				preparePhase(); 
 				extractURLPhase();
 				mainPhase();
 
@@ -248,27 +255,21 @@ public abstract class BAASeleniumSpider extends BAABaseSpider {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
-					
-
 					System.out.println("Main Phase using "+Thread.currentThread().getName()+" ` "+link+" remaining "+dataLinkQueue.size()+" "); 
-
 				} 
-				//wdr.close();
 			});
-
 		}
 
 		executorService.shutdown();
 		executorService.awaitTermination(1,TimeUnit.DAYS);
 
 		BufferedWriter br = new BufferedWriter(new FileWriter(new File(cacheFile, "cache.dat"))); 
-
-
 		for(String key : linkToCache.keySet()) {
 
 			br.write(key+"`"+linkToCache.get(key)); 
 			br.newLine();
 		}
+
 		br.flush();
 		br.close();
 		System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages"); 

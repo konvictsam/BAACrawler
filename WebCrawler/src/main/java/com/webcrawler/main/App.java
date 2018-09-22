@@ -1,19 +1,20 @@
-package com.mstar.baa.webcrawler;
+package com.webcrawler.main;
 
 
-import com.mstar.baa.spider.BAASeleniumSpider;
-import com.mstar.baa.spider.Drivers;
-import static com.mstar.baa.utilities.BAASpiderUtility.*;
+import static com.webcrawler.utilities.SpiderUtility.*;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import com.webcrawler.spider.Drivers;
+import com.webcrawler.spider.SeleniumSpider;
 
 /**
  * 
  * @author Sameer Gaware
  *
  */
-public class App extends BAASeleniumSpider
+public class App extends SeleniumSpider
 {
 	
 	@Override

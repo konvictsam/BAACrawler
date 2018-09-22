@@ -1,4 +1,4 @@
-package com.mstar.baa.spider;
+package com.webcrawler.spider;
 
 public enum Drivers {
 	CHROME,HEADLESSCHROME,FIREFOX,PHANTOMJS;

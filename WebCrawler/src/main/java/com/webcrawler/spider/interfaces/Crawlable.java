@@ -1,4 +1,4 @@
-package com.mstar.baa.spider.interfaces;
+package com.webcrawler.spider.interfaces;
 
 import java.util.List;
 
@@ -16,6 +16,7 @@ public interface Crawlable {
 	public List<String> extractURLPhase(String url,String body);
 	public void mainPhase(String url,String body);
 	public void postPhase(String url, String body);
+	public void cleanUpPhase();
 	public boolean isTraversalPage(String url);
 	public boolean isDataPage(String url);
 	public void start(String startLink,int threadCount); 

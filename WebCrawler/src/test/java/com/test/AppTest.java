@@ -1,4 +1,4 @@
-package com.mstar.WebCrawler;
+package com.test;
 
 import java.util.Arrays;
 import java.util.List;

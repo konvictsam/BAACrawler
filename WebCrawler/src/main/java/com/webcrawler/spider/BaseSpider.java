@@ -1,4 +1,4 @@
-package com.mstar.baa.spider;
+package com.webcrawler.spider;
 
 import java.io.File;
 import java.util.List;
@@ -10,14 +10,14 @@ import java.util.concurrent.ExecutorService;
 
 import org.openqa.selenium.WebDriver;
 
-import com.mstar.baa.spider.interfaces.Crawlable;
+import com.webcrawler.spider.interfaces.Crawlable;
 
 /**
  * 
  * @author Sameer Gaware
  *
  */
-public abstract class BAABaseSpider implements Crawlable{
+public abstract class BaseSpider implements Crawlable{
 
 	public static String NAME = null;
 	protected String body = null;
