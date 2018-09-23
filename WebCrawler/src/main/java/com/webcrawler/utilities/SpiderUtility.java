@@ -1,5 +1,10 @@
 package com.webcrawler.utilities;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 /**
@@ -58,7 +63,7 @@ public  class SpiderUtility
 
 						}
 					}
-					
+
 					if(!nullOrZero(queryString))
 						url = url.substring(0, index) +"?"+queryString;
 					else
@@ -68,5 +73,26 @@ public  class SpiderUtility
 		}
 
 		return url;
+	}
+
+	/**
+	 * 
+	 * @param path
+	 * @param encoding
+	 * @return
+	 * @throws IOException
+	 */
+	public static String readFile(File cacheFile)   
+	{
+		try {
+			byte[] encoded = Files.readAllBytes(cacheFile.toPath()); 
+			return new String(encoded);
+		}
+		catch(IOException qe) {
+			qe.printStackTrace();
+			return "";
+		}
+
+
 	}
 }

@@ -1,6 +1,6 @@
 package com.webcrawler.spider;
 
-import static com.webcrawler.utilities.SpiderUtility.nullOrZero;
+import static com.webcrawler.utilities.SpiderUtility.*;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -41,10 +41,10 @@ public abstract class SeleniumSpider extends BaseSpider {
 	private BlockingQueue<String> linksToVisit = null;
 	private Queue<String> dataLinkQueue = null; 
 	private String mainPageBody = null;
-	List<String> allLinks = null;
+	private List<String> allLinks = null;
 	private int threadCount = 1;
 	private ChromeOptions options = null;
-	Object cacheCountLock = new Object();
+	private File cacheFilePath = null;
 	private File cacheFile = null;
 
 	public SeleniumSpider() {
@@ -83,12 +83,18 @@ public abstract class SeleniumSpider extends BaseSpider {
 			linksToVisit.add(startLink); 
 			allLinks = new CopyOnWriteArrayList<>();
 			dataLinkQueue = new ConcurrentLinkedQueue<String>();
-			cacheFile = getCacheDirectory();
+			cacheFilePath = getCacheDirectory();
 			linkToCache = new ConcurrentSkipListMap<>();
 			visitedLinks = new ConcurrentSkipListSet<>();
 
-			if(!cacheFile.exists())
-				cacheFile.mkdir();
+			if(!cacheFilePath.exists())
+				cacheFilePath.mkdir();
+
+			cacheFile = new File(cacheFilePath,"cache.dat");
+			if(cacheFile.exists()) {
+				populateCacheMap(cacheFile);
+			}
+
 
 			System.out.println("Inside Headless chrome");
 
@@ -110,9 +116,20 @@ public abstract class SeleniumSpider extends BaseSpider {
 	}
 
 
+	private void populateCacheMap(File cacheFile) throws IOException { 
+
+		Files.readAllLines(cacheFile.toPath()).stream().forEach(element -> {
+
+			if(!nullOrZero(element) && element.contains("`")) {
+				String arr[] = element.split("`");
+				linkToCache.put(arr[0], arr[1]);
+			}
+		});
+	}
+
 	@Override
 	public void postPhase(String url, String body) {
-		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub 
 
 	}
 
@@ -178,7 +195,11 @@ public abstract class SeleniumSpider extends BaseSpider {
 						List<String> traversalLinks = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList());
 						List<String> dataLinks = links.stream().filter(element1 -> isDataPage(element1)).collect(Collectors.toList());
 
-						dataLinks.stream().forEach(element1 -> linkToCache.put(element1, "")); 
+						dataLinks.stream().forEach(element1 -> {
+							if(!linkToCache.containsKey(element1))
+								linkToCache.put(element1, "");
+
+						}); 
 
 						linksToVisit.addAll(traversalLinks);
 					}
@@ -244,12 +265,10 @@ public abstract class SeleniumSpider extends BaseSpider {
 				while(!dataLinkQueue.isEmpty()) {
 					String link = dataLinkQueue.poll();
 
-					wdr.get(link);
-					String pageSource = wdr.getPageSource();
-
+					String pageSource = getBody(link,wdr);
 					try {
 						int currentCacheCount = ++cacheCount;
-						Files.write(Paths.get(cacheFile.getAbsolutePath(),"/"+currentCacheCount+".html"), pageSource.getBytes());
+						Files.write(Paths.get(cacheFilePath.getAbsolutePath(),"/"+currentCacheCount+".html"), pageSource.getBytes());
 						linkToCache.put(link, currentCacheCount+".html"); 
 
 					} catch (IOException e) {
@@ -263,7 +282,7 @@ public abstract class SeleniumSpider extends BaseSpider {
 		executorService.shutdown();
 		executorService.awaitTermination(1,TimeUnit.DAYS);
 
-		BufferedWriter br = new BufferedWriter(new FileWriter(new File(cacheFile, "cache.dat"))); 
+		BufferedWriter br = new BufferedWriter(new FileWriter(new File(cacheFilePath, "cache.dat"))); 
 		for(String key : linkToCache.keySet()) {
 
 			br.write(key+"`"+linkToCache.get(key)); 
@@ -274,5 +293,22 @@ public abstract class SeleniumSpider extends BaseSpider {
 		br.close();
 		System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages"); 
 		System.out.println("Finished main Phase");  
+	}
+
+	private String getBody(String link, WebDriver wdr) 
+	{
+		String body = "";
+		String cachePage = linkToCache.get(link);
+		if(!nullOrZero(cachePage)) {
+			File dataFile = new File(cacheFilePath, cachePage);
+			body = readFile(dataFile);
+			System.err.println("Returning Cache body");
+		}
+		else {
+			wdr.get(link);
+			body = wdr.getPageSource();
+		}
+
+		return body;
 	}
 }
