@@ -30,8 +30,8 @@ public abstract class BaseSpider implements Crawlable{
 	protected String startLink = null;
 	protected ExecutorService executorService = null;
 	protected volatile int cacheCount = 0;
-	protected String path = "E:/web_crawler";
-	protected String cacheDirectory = null;
+	protected File path = null;
+	protected File cacheDirectory = null;
 
 	@Override
 	public List<String> extractURLPhase(String url, String body) {
@@ -46,8 +46,15 @@ public abstract class BaseSpider implements Crawlable{
 	}
 
 	public File getCacheDirectory() {
-		cacheDirectory = path+"/"+NAME; 
-		return new File(cacheDirectory);
+		path = new File("C:/web_crawler");
+		if(!path.exists())
+			path.mkdir();
+
+		cacheDirectory = new File(path,NAME);
+		if(!cacheDirectory.exists())
+			cacheDirectory.mkdir();
+
+		return cacheDirectory;
 	}
 
 	@Override

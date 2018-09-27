@@ -60,8 +60,9 @@ public abstract class SeleniumSpider extends BaseSpider {
 	 * 
 	 * @param currentDriver
 	 */
-	public void setDriver(Drivers currentDriver)
+	public void setDriver(Drivers currentDriver, String chromeDriverPath)
 	{
+		this.chromeDriverPath = chromeDriverPath;
 		this.currentDriver = currentDriver;
 	}
 
@@ -87,9 +88,6 @@ public abstract class SeleniumSpider extends BaseSpider {
 			linkToCache = new ConcurrentSkipListMap<>();
 			visitedLinks = new ConcurrentSkipListSet<>();
 
-			if(!cacheFilePath.exists())
-				cacheFilePath.mkdir();
-
 			cacheFile = new File(cacheFilePath,"cache.dat");
 			if(cacheFile.exists()) {
 				populateCacheMap(cacheFile);
@@ -99,7 +97,7 @@ public abstract class SeleniumSpider extends BaseSpider {
 			System.out.println("Inside Headless chrome");
 
 			//TODO : find better way to have dynamic path
-			chromeDriverPath = "E:\\Chrome Driver\\chromedriver.exe" ;  
+			//chromeDriverPath = "C:\\Driver\\chromedriver.exe" ;  
 			System.setProperty("webdriver.chrome.driver", chromeDriverPath);  
 			options = new ChromeOptions();
 			options.addArguments("--headless", "--disable-gpu", "--window-size=1920,1200","--ignore-certificate-errors");

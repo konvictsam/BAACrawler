@@ -57,7 +57,7 @@ public class App extends SeleniumSpider
 		{
 			App a = new App();
 			a.setName("GLOBAL_VIEW");
-			a.setDriver(Drivers.HEADLESSCHROME); 
+			a.setDriver(Drivers.HEADLESSCHROME,"C:\\Driver\\chromedriver.exe");  
 			a.start("https://www.globalviews.com/categories", 10);
 			a.setExtractLinkFromDataPage(false); 
 			
