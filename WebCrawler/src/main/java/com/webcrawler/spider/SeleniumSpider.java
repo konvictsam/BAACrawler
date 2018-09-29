@@ -9,10 +9,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -36,13 +40,8 @@ public abstract class SeleniumSpider extends BaseSpider {
 
 	private String chromeDriverPath = null;  
 	private WebDriver driver = null;
-	private WebDriver webDrivers[] = new WebDriver[10]; 
-	private Drivers currentDriver = null;
-	private BlockingQueue<String> linksToVisit = null;
-	private Queue<String> dataLinkQueue = null; 
-	private String mainPageBody = null;
-	private List<String> allLinks = null;
-	private int threadCount = 1;
+	private WebDriver webDrivers[] = null; 
+	private Drivers currentDriver = null; 
 	private ChromeOptions options = null;
 	private File cacheFilePath = null;
 	private File cacheFile = null;
@@ -69,9 +68,7 @@ public abstract class SeleniumSpider extends BaseSpider {
 	@Override
 	public String getBody(String url) {
 		driver.get(startLink);
-
 		String body = driver.getPageSource();
-		mainPageBody = body;
 		return body;
 	}
 
@@ -80,36 +77,33 @@ public abstract class SeleniumSpider extends BaseSpider {
 
 		try {
 
-			linksToVisit = new ArrayBlockingQueue<>(1000);
+			linksToVisit = new ConcurrentLinkedQueue<String>();
 			linksToVisit.add(startLink); 
-			allLinks = new CopyOnWriteArrayList<>();
 			dataLinkQueue = new ConcurrentLinkedQueue<String>();
 			cacheFilePath = getCacheDirectory();
-			linkToCache = new ConcurrentSkipListMap<>();
+			linkToCache = new ConcurrentHashMap<>(); 
 			visitedLinks = new ConcurrentSkipListSet<>();
+			webDrivers = new WebDriver[threadCount];
 
 			cacheFile = new File(cacheFilePath,"cache.dat");
 			if(cacheFile.exists()) {
-				populateCacheMap(cacheFile);
+				populateCacheMap(cacheFile); 
 			}
-
 
 			System.out.println("Inside Headless chrome");
 
-			//TODO : find better way to have dynamic path
-			//chromeDriverPath = "C:\\Driver\\chromedriver.exe" ;  
 			System.setProperty("webdriver.chrome.driver", chromeDriverPath);  
 			options = new ChromeOptions();
 			options.addArguments("--headless", "--disable-gpu", "--window-size=1920,1200","--ignore-certificate-errors");
-
+			
 			driver = new ChromeDriver(options);
 
 			for(int index = 1 ; index<=threadCount ; index++) {
 				webDrivers[index-1] = new ChromeDriver(options);
 			}
 
-		}	catch(Exception  e) {
-
+		}catch(Exception  e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -117,12 +111,20 @@ public abstract class SeleniumSpider extends BaseSpider {
 	private void populateCacheMap(File cacheFile) throws IOException { 
 
 		Files.readAllLines(cacheFile.toPath()).stream().forEach(element -> {
-
-			if(!nullOrZero(element) && element.contains("`")) {
+			if(!nullOrEmpty(element) && element.contains("`")) {
 				String arr[] = element.split("`");
 				linkToCache.put(arr[0], arr[1]);
 			}
 		});
+
+		/*creating a TreeSet and populating it with cache file names(in number format)*/
+		TreeSet<Integer> sortedCacheList = new TreeSet<>();
+		linkToCache.values().stream().forEach(element -> {
+			sortedCacheList.add(Integer.parseInt(element.replaceAll("\\.html", "")));
+		});
+
+		/*setting the cache count value to highest cache number*/
+		cacheCount = sortedCacheList.last();
 	}
 
 	@Override
@@ -137,7 +139,9 @@ public abstract class SeleniumSpider extends BaseSpider {
 		for(int index = 0 ; index < threadCount ; index++) {
 			WebDriver wdr = webDrivers[index];
 			wdr.quit();
+			wdr.close(); 
 		}
+		driver.close();
 	}
 
 	@Override
@@ -163,12 +167,12 @@ public abstract class SeleniumSpider extends BaseSpider {
 		System.out.println("Extracting link from : "+url); 
 
 		List<WebElement> allElements = webDrivers2.findElements(By.tagName("a"));
-		if(!nullOrZero(allElements)) {
+		if(!nullOrEmpty(allElements)) {
 			for(WebElement we : allElements) {
 				String link = we.getAttribute("href");
 				link = normalizeURL(link);
 
-				if(nullOrZero(link))
+				if(nullOrEmpty(link))
 					continue;
 				if((isDataPage(link) || isTraversalPage(link)) && !visitedLinks.contains(link)) {
 					links.add(link);
@@ -189,7 +193,7 @@ public abstract class SeleniumSpider extends BaseSpider {
 					String link = linksToVisit.peek();
 					System.out.println("Thread : "+Thread.currentThread()); 
 					List<String> links = extractURLPhase(link, null, wdr);
-					if(!nullOrZero(links)) {
+					if(!nullOrEmpty(links)) {
 						List<String> traversalLinks = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList());
 						List<String> dataLinks = links.stream().filter(element1 -> isDataPage(element1)).collect(Collectors.toList());
 
@@ -233,7 +237,7 @@ public abstract class SeleniumSpider extends BaseSpider {
 				extractURLPhase();
 				mainPhase();
 
-				System.out.println("Finished Extract link phase");
+				System.out.println("Finished Extract link phase"+cacheCount);
 
 			}catch (Exception e) {
 				e.printStackTrace();
@@ -265,8 +269,9 @@ public abstract class SeleniumSpider extends BaseSpider {
 
 					String pageSource = getBody(link,wdr);
 					try {
-						int currentCacheCount = ++cacheCount;
-						if(nullOrZero(linkToCache.get(link))) { 
+
+						if(nullOrEmpty(linkToCache.get(link))) {
+							int currentCacheCount = ++cacheCount;
 							Files.write(Paths.get(cacheFilePath.getAbsolutePath(),"/"+currentCacheCount+".html"), pageSource.getBytes());
 							linkToCache.put(link, currentCacheCount+".html");
 						}
@@ -284,7 +289,6 @@ public abstract class SeleniumSpider extends BaseSpider {
 
 		BufferedWriter br = new BufferedWriter(new FileWriter(new File(cacheFilePath, "cache.dat"))); 
 		for(String key : linkToCache.keySet()) {
-
 			br.write(key+"`"+linkToCache.get(key)); 
 			br.newLine();
 		}
@@ -299,7 +303,7 @@ public abstract class SeleniumSpider extends BaseSpider {
 	{
 		String body = "";
 		String cachePage = linkToCache.get(link);
-		if(!nullOrZero(cachePage)) {
+		if(!nullOrEmpty(cachePage)) {
 			File dataFile = new File(cacheFilePath, cachePage);
 			body = readFile(dataFile);
 			System.err.println("Returning Cache body");

@@ -19,12 +19,12 @@ public class App extends SeleniumSpider
 	
 	@Override
 	public boolean isTraversalPage(String url) {
-		return !nullOrZero(url) && url.startsWith("https://www.globalviews.com/categories/"); 
+		return !nullOrEmpty(url) && url.startsWith("https://www.globalviews.com/categories/"); 
 	}
 
 	@Override
 	public boolean isDataPage(String link) {
-		return !nullOrZero(link) && link.startsWith("https://www.globalviews.com/product_groups/"); 
+		return !nullOrEmpty(link) && link.startsWith("https://www.globalviews.com/product_groups/"); 
 	}
 
 	@Override

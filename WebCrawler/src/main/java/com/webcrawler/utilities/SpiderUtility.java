@@ -19,7 +19,7 @@ public  class SpiderUtility
 	 * @param input
 	 * @return
 	 */
-	public static boolean nullOrZero(String input) {
+	public static boolean nullOrEmpty(String input) {
 		return (input == null || input.length() == 0);
 	}
 
@@ -28,7 +28,7 @@ public  class SpiderUtility
 	 * @param list
 	 * @return
 	 */
-	public static<T> boolean nullOrZero(List<T> list) {
+	public static<T> boolean nullOrEmpty(List<T> list) {
 		return (list == null || list.size() == 0);
 	}
 
@@ -40,7 +40,7 @@ public  class SpiderUtility
 	 */
 	public static String stripUrlArgsExcept(String url,List<String> arguments)
 	{
-		if(nullOrZero(url))
+		if(nullOrEmpty(url))
 			return "";
 
 		int index = url.indexOf("?");
@@ -48,9 +48,9 @@ public  class SpiderUtility
 
 		if(index > -1) {
 			String argsSection = url.substring(index+1);
-			if(!nullOrZero(argsSection)) {
+			if(!nullOrEmpty(argsSection)) {
 				List<String> args = Arrays.asList(argsSection.split("&")); 
-				if(!nullOrZero(args)) {
+				if(!nullOrEmpty(args)) {
 					for(String argument : arguments) {
 						for(String arg : args) {
 							if(arg.startsWith(argument+"=")) {
@@ -60,18 +60,16 @@ public  class SpiderUtility
 								else
 									queryString = queryString+"&"+arg;
 							}
-
 						}
 					}
 
-					if(!nullOrZero(queryString))
+					if(!nullOrEmpty(queryString))
 						url = url.substring(0, index) +"?"+queryString;
 					else
 						url = url.substring(0, index);
 				}
 			}
 		}
-
 		return url;
 	}
 
@@ -87,12 +85,9 @@ public  class SpiderUtility
 		try {
 			byte[] encoded = Files.readAllBytes(cacheFile.toPath()); 
 			return new String(encoded);
-		}
-		catch(IOException qe) {
+		}catch(IOException qe) {
 			qe.printStackTrace();
 			return "";
 		}
-
-
 	}
 }

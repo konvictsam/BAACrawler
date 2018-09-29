@@ -3,6 +3,7 @@ package com.webcrawler.spider;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -32,6 +33,9 @@ public abstract class BaseSpider implements Crawlable{
 	protected volatile int cacheCount = 0;
 	protected File path = null;
 	protected File cacheDirectory = null;
+	protected Queue<String> linksToVisit = null;
+	protected Queue<String> dataLinkQueue = null; 
+	protected int threadCount = 1;
 
 	@Override
 	public List<String> extractURLPhase(String url, String body) {
