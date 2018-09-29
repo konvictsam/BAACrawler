@@ -5,11 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
-
-import org.openqa.selenium.WebDriver;
 
 import com.webcrawler.spider.interfaces.Crawlable;
 

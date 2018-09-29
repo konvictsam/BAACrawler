@@ -9,18 +9,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Queue;
-import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -138,10 +131,11 @@ public abstract class SeleniumSpider extends BaseSpider {
 
 		for(int index = 0 ; index < threadCount ; index++) {
 			WebDriver wdr = webDrivers[index];
+			wdr.close();
 			wdr.quit();
-			wdr.close(); 
 		}
 		driver.close();
+		driver.quit();
 	}
 
 	@Override
