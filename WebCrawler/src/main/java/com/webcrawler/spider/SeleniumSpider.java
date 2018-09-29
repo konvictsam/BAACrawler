@@ -266,8 +266,10 @@ public abstract class SeleniumSpider extends BaseSpider {
 					String pageSource = getBody(link,wdr);
 					try {
 						int currentCacheCount = ++cacheCount;
-						Files.write(Paths.get(cacheFilePath.getAbsolutePath(),"/"+currentCacheCount+".html"), pageSource.getBytes());
-						linkToCache.put(link, currentCacheCount+".html"); 
+						if(nullOrZero(linkToCache.get(link))) { 
+							Files.write(Paths.get(cacheFilePath.getAbsolutePath(),"/"+currentCacheCount+".html"), pageSource.getBytes());
+							linkToCache.put(link, currentCacheCount+".html");
+						}
 
 					} catch (IOException e) {
 						e.printStackTrace();
