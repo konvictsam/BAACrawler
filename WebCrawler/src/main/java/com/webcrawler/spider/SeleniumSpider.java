@@ -29,7 +29,7 @@ import org.openqa.selenium.chrome.ChromeOptions;
  * @author Sameer Gaware
  *
  */
-public abstract class SeleniumSpider extends BaseSpider {
+public abstract class SeleniumSpider extends Spider {
 
 	private String chromeDriverPath = null;  
 	private WebDriver driver = null;
@@ -65,6 +65,10 @@ public abstract class SeleniumSpider extends BaseSpider {
 		return body;
 	}
 
+	/**
+	 * Creates all necessary objects for SeleniumSpider. 
+	 * Avoid Overriding this method, if you override it then make sure you call super.preparePhase() 
+	 */
 	@Override
 	public void preparePhase()  {
 
@@ -88,7 +92,7 @@ public abstract class SeleniumSpider extends BaseSpider {
 			System.setProperty("webdriver.chrome.driver", chromeDriverPath);  
 			options = new ChromeOptions();
 			options.addArguments("--headless", "--disable-gpu", "--window-size=1920,1200","--ignore-certificate-errors");
-			
+
 			driver = new ChromeDriver(options);
 
 			for(int index = 1 ; index<=threadCount ; index++) {
@@ -100,7 +104,11 @@ public abstract class SeleniumSpider extends BaseSpider {
 		}
 	}
 
-
+	/**
+	 * Reads the cache file if available already and populate the information into map which is further used to avoid multiple caching of pages
+	 * @param cacheFile
+	 * @throws IOException
+	 */
 	private void populateCacheMap(File cacheFile) throws IOException { 
 
 		Files.readAllLines(cacheFile.toPath()).stream().forEach(element -> {
@@ -126,6 +134,9 @@ public abstract class SeleniumSpider extends BaseSpider {
 
 	}
 
+	/**
+	 * It is used to close all opened resources
+	 */
 	@Override
 	public void cleanUpPhase() {
 
@@ -144,11 +155,11 @@ public abstract class SeleniumSpider extends BaseSpider {
 		return extractURLPhase(url, body,null);
 	}
 
-	public List<String> extractURLPhase(String url, String body, WebDriver webDrivers2) {
+	public List<String> extractURLPhase(String url, String body, WebDriver webDriver) {
 
 		List<String> links = new ArrayList<>();
 
-		if(webDrivers2 == null)
+		if(webDriver == null)
 			return links;
 
 		if(skipExtractLinkPhase)
@@ -157,13 +168,13 @@ public abstract class SeleniumSpider extends BaseSpider {
 		if(!setExtractLinkFromDataPage && isDataPage(url))
 			return links;
 
-		webDrivers2.get(url); 
+		webDriver.get(url); 
 		System.out.println("Extracting link from : "+url); 
 
-		List<WebElement> allElements = webDrivers2.findElements(By.tagName("a"));
+		List<WebElement> allElements = webDriver.findElements(By.tagName("a"));
 		if(!nullOrEmpty(allElements)) {
-			for(WebElement we : allElements) {
-				String link = we.getAttribute("href");
+			for(WebElement webElement : allElements) {
+				String link = webElement.getAttribute("href");
 				link = normalizeURL(link);
 
 				if(nullOrEmpty(link))
@@ -208,12 +219,6 @@ public abstract class SeleniumSpider extends BaseSpider {
 		executorService.shutdown();
 		executorService.awaitTermination(1,TimeUnit.DAYS); 
 		System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages");
-		//Testing
-		for(String element : linkToCache.keySet() )
-		{
-			System.out.println(" linK : "+element); 
-
-		}
 	}
 
 	@Override
@@ -233,7 +238,7 @@ public abstract class SeleniumSpider extends BaseSpider {
 
 				System.out.println("Finished Extract link phase"+cacheCount);
 
-			}catch (Exception e) {
+			} catch (Exception e){
 				e.printStackTrace();
 			}
 		}
@@ -289,7 +294,7 @@ public abstract class SeleniumSpider extends BaseSpider {
 
 		br.flush();
 		br.close();
-		System.out.println("Shutting down executor service Caught "+linkToCache.size()+" data pages"); 
+		System.out.println("Shutting down executor service, Caught "+linkToCache.size()+" data pages"); 
 		System.out.println("Finished main Phase");  
 	}
 

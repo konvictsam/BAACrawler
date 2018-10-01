@@ -14,7 +14,7 @@ import com.webcrawler.spider.interfaces.Crawlable;
  * @author Sameer Gaware
  *
  */
-public abstract class BaseSpider implements Crawlable{
+public abstract class Spider implements Crawlable{
 
 	public static String NAME = null;
 	protected String body = null;
@@ -24,13 +24,13 @@ public abstract class BaseSpider implements Crawlable{
 	protected boolean setExtractLinkFromDataPage = false;
 	protected Set<String> visitedLinks = null;
 	protected Map<String,String> linkToCache = null;
+	protected Queue<String> linksToVisit = null;
+	protected Queue<String> dataLinkQueue = null; 
 	protected String startLink = null;
 	protected ExecutorService executorService = null;
 	protected volatile int cacheCount = 0;
 	protected File path = null;
 	protected File cacheDirectory = null;
-	protected Queue<String> linksToVisit = null;
-	protected Queue<String> dataLinkQueue = null; 
 	protected int threadCount = 1;
 
 	@Override
