@@ -200,14 +200,14 @@ public abstract class SeleniumSpider extends Spider {
 					List<String> links = extractURLPhase(link, null, wdr);
 					if(!nullOrEmpty(links)) {
 						List<String> traversalLinks = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList());
-						List<String> dataLinks = links.stream().filter(element1 -> isDataPage(element1)).collect(Collectors.toList());
-
-						dataLinks.stream().forEach(element1 -> {
+						List<String> dataLinks = links.stream().filter(element1 -> isDataPage(element1) && !dataLinkQueue.contains(element1)).collect(Collectors.toList());
+						dataLinkQueue.addAll(dataLinks); 
+						/*dataLinks.stream().forEach(element1 -> {
 							if(!linkToCache.containsKey(element1))
 								linkToCache.put(element1, "");
 
-						}); 
-
+						}); */
+						
 						linksToVisit.addAll(traversalLinks);
 					}
 					System.out.println("Removing "+link+" from queue "+linksToVisit.size()+" "); 
@@ -255,8 +255,7 @@ public abstract class SeleniumSpider extends Spider {
 
 		//add data links in dataLinkQueue for processing
 		executorService = Executors.newFixedThreadPool(threadCount);
-		dataLinkQueue.addAll(linkToCache.keySet());
-
+		//dataLinkQueue.addAll(linkToCache.keySet());
 
 		for(int index = 0 ; index < threadCount ; index++) {
 
