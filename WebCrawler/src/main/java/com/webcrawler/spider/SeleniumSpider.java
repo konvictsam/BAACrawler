@@ -59,7 +59,7 @@ public abstract class SeleniumSpider extends Spider {
 	}
 
 	@Override
-	public String getBody(String url) {
+	public String getSource(String url) {
 		driver.get(startLink);
 		String body = driver.getPageSource();
 		return body;
@@ -265,7 +265,7 @@ public abstract class SeleniumSpider extends Spider {
 				while(!dataLinkQueue.isEmpty()) {
 					String link = dataLinkQueue.poll();
 
-					String pageSource = getBody(link,wdr);
+					String pageSource = getSource(link,wdr);
 					try {
 
 						if(nullOrEmpty(linkToCache.get(link))) {
@@ -297,7 +297,7 @@ public abstract class SeleniumSpider extends Spider {
 		System.out.println("Finished main Phase");  
 	}
 
-	private String getBody(String link, WebDriver wdr) 
+	private String getSource(String link, WebDriver wdr) 
 	{
 		String body = "";
 		String cachePage = linkToCache.get(link);
