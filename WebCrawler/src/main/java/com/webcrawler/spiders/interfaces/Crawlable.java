@@ -1,4 +1,4 @@
-package com.webcrawler.spider.interfaces;
+package com.webcrawler.spiders.interfaces;
 
 import java.util.List;
 

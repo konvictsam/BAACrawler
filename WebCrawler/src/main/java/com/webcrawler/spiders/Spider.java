@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import com.webcrawler.models.Product;
-import com.webcrawler.spider.interfaces.Crawlable;
+import com.webcrawler.spiders.interfaces.Crawlable;
 
 /**
  * 
