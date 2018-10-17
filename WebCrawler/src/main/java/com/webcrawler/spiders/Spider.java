@@ -1,4 +1,4 @@
-package com.webcrawler.spider;
+package com.webcrawler.spiders;
 
 import java.io.File;
 import java.util.List;
@@ -7,6 +7,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
+import com.webcrawler.models.Product;
 import com.webcrawler.spider.interfaces.Crawlable;
 
 /**
@@ -32,12 +33,8 @@ public abstract class Spider implements Crawlable{
 	protected File path = null;
 	protected File cacheDirectory = null;
 	protected int threadCount = 1;
+	protected List<Product> products = null;
 
-	@Override
-	public List<String> extractURLPhase(String url, String body) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	@Override
 	public void setSkipExtractLinkPhase(boolean skipExtractLinkPhase) {
@@ -60,6 +57,18 @@ public abstract class Spider implements Crawlable{
 	@Override
 	public void setExtractLinkFromDataPage(boolean setExtractLinkFromDataPage) {
 		this.setExtractLinkFromDataPage = setExtractLinkFromDataPage;
+
+	}
+
+	@Override
+	public void addProducts(List<Product> products) {
+		this.products.addAll(products); 
+
+	}
+
+	@Override
+	public void addProduct(Product product) {
+		this.products.add(product);
 
 	}
 

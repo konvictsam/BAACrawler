@@ -6,8 +6,10 @@ import static com.webcrawler.utilities.SpiderUtility.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.webcrawler.spider.Drivers;
-import com.webcrawler.spider.SeleniumSpider;
+import com.webcrawler.models.Product;
+import com.webcrawler.spiders.Drivers;
+import com.webcrawler.spiders.SeleniumSpider;
+import com.webcrawler.utilities.SpiderUtility;
 
 /**
  * 
@@ -16,7 +18,7 @@ import com.webcrawler.spider.SeleniumSpider;
  */
 public class App extends SeleniumSpider
 {
-	
+
 	@Override
 	public boolean isTraversalPage(String url) {
 		return !nullOrEmpty(url) && url.startsWith("https://www.globalviews.com/categories/"); 
@@ -51,6 +53,41 @@ public class App extends SeleniumSpider
 		return url;
 	}
 
+	@Override
+	public void mainPhase(String url, String body) {
+		String modelNumber = getModelNumber(body);
+		String id = NAME+":"+modelNumber;
+		String description = getDescription(body);
+		String image = getImage(url,body);
+		
+		Product product = new Product();
+		product.setModelNumber(modelNumber);
+		product.setProductURL(url); 
+		product.setDescription(description);
+		product.setId(id);
+		product.setImage(image);
+		
+		this.addProduct(product); 
+	}
+
+	private String getImage(String url, String body) { 
+		String image = SpiderUtility.getStringWithinDelimiters(body, "<div id=\"main\">", "<div id=\"productdata\">");
+		image = SpiderUtility.getPlainStringWithinDelimiters(image, "<a class=\"closeup_thumbnail\" href=\"", "\"><img class");
+		
+		return image;
+	}
+
+	private String getDescription(String body) {
+		String desc = SpiderUtility.getPlainStringWithinDelimiters(body, "<span class=\"product_description\">", "</tbody>");
+		return desc;
+	}
+
+	private String getModelNumber(String body) {
+		String modelNumber = SpiderUtility.getStringWithinDelimiters(body, "<table id=\"detailstable\">", "</table>");
+		modelNumber = SpiderUtility.getPlainStringWithinDelimiters(modelNumber, "<td>", "</td>");
+		return modelNumber;
+	}
+
 	public static void main( String[] args )
 	{
 		try 
@@ -60,16 +97,11 @@ public class App extends SeleniumSpider
 			a.setDriver(Drivers.HEADLESSCHROME,"C:\\Driver\\chromedriver.exe");  
 			a.start("https://www.globalviews.com/categories", 10);
 			a.setExtractLinkFromDataPage(false); 
-			
+
 		} catch(Exception ae) {
 
 			ae.printStackTrace(); 
 		}
 	}
 
-	@Override
-	public void mainPhase(String url, String body) {
-		// TODO Auto-generated method stub
-
-	}
 }

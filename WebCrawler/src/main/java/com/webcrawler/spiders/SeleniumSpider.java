@@ -1,4 +1,4 @@
-package com.webcrawler.spider;
+package com.webcrawler.spiders;
 
 import static com.webcrawler.utilities.SpiderUtility.*;
 
@@ -14,15 +14,23 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+
+import com.webcrawler.models.Product;
+import com.webcrawler.models.Products;
 
 /**
  * 
@@ -80,6 +88,7 @@ public abstract class SeleniumSpider extends Spider {
 			cacheFilePath = getCacheDirectory();
 			linkToCache = new ConcurrentHashMap<>(); 
 			visitedLinks = new ConcurrentSkipListSet<>();
+			products = new CopyOnWriteArrayList<>();
 			webDrivers = new WebDriver[threadCount];
 
 			cacheFile = new File(cacheFilePath,"cache.dat");
@@ -129,9 +138,30 @@ public abstract class SeleniumSpider extends Spider {
 	}
 
 	@Override
-	public void postPhase(String url, String body) {
-		// TODO Auto-generated method stub 
+	public void postPhase(){ 
 
+		try
+		{
+			Products prods = new Products();
+			prods.setProducts(new ArrayList<Product>()); 
+
+			products.stream().forEach(element -> {
+				prods.getProducts().add(element);
+			});
+
+			JAXBContext jaxbContext = JAXBContext.newInstance(Products.class);
+			Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
+
+			jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+
+			//Marshal the product list in console
+			//jaxbMarshaller.marshal(products, System.out);
+
+			//Marshal the product list in file
+			jaxbMarshaller.marshal(prods, new File(getCacheDirectory(),"products.xml")); 
+		}catch (Exception e) { 
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -202,12 +232,6 @@ public abstract class SeleniumSpider extends Spider {
 						List<String> traversalLinks = links.stream().filter(element -> isTraversalPage(element)).collect(Collectors.toList());
 						List<String> dataLinks = links.stream().filter(element1 -> isDataPage(element1) && !dataLinkQueue.contains(element1)).collect(Collectors.toList());
 						dataLinkQueue.addAll(dataLinks); 
-						/*dataLinks.stream().forEach(element1 -> {
-							if(!linkToCache.containsKey(element1))
-								linkToCache.put(element1, "");
-
-						}); */
-						
 						linksToVisit.addAll(traversalLinks);
 					}
 					System.out.println("Removing "+link+" from queue "+linksToVisit.size()+" "); 
@@ -235,8 +259,10 @@ public abstract class SeleniumSpider extends Spider {
 				preparePhase(); 
 				extractURLPhase();
 				mainPhase();
+				postPhase();
+				cleanUpPhase();
 
-				System.out.println("Finished Extract link phase"+cacheCount);
+				System.out.println("Finished Crawling website");
 
 			} catch (Exception e){
 				e.printStackTrace();
@@ -255,7 +281,6 @@ public abstract class SeleniumSpider extends Spider {
 
 		//add data links in dataLinkQueue for processing
 		executorService = Executors.newFixedThreadPool(threadCount);
-		//dataLinkQueue.addAll(linkToCache.keySet());
 
 		for(int index = 0 ; index < threadCount ; index++) {
 
@@ -266,6 +291,7 @@ public abstract class SeleniumSpider extends Spider {
 					String link = dataLinkQueue.poll();
 
 					String pageSource = getSource(link,wdr);
+					mainPhase(link, pageSource); 
 					try {
 
 						if(nullOrEmpty(linkToCache.get(link))) {
