@@ -188,7 +188,8 @@ public abstract class SeleniumSpider extends Spider {
 	public List<String> extractURLPhase(String url, String body, WebDriver webDriver) {
 
 		List<String> links = new ArrayList<>();
-
+		try
+		{
 		if(webDriver == null)
 			return links;
 
@@ -202,11 +203,12 @@ public abstract class SeleniumSpider extends Spider {
 		System.out.println("Extracting link from : "+url); 
 
 		List<WebElement> allElements = webDriver.findElements(By.tagName("a"));
+		if(nullOrEmpty(allElements))
+			System.err.println("Got no elements : "+allElements); 
 		if(!nullOrEmpty(allElements)) {
 			for(WebElement webElement : allElements) {
 				String link = webElement.getAttribute("href");
 				link = normalizeURL(link);
-
 				if(nullOrEmpty(link))
 					continue;
 				if((isDataPage(link) || isTraversalPage(link)) && !visitedLinks.contains(link)) {
@@ -215,6 +217,10 @@ public abstract class SeleniumSpider extends Spider {
 					System.out.println("	"+link); 
 				}
 			}
+		}
+		}catch(Exception ae)
+		{
+			ae.printStackTrace(); 
 		}
 		return links;
 	}
@@ -329,7 +335,7 @@ public abstract class SeleniumSpider extends Spider {
 		String cachePage = linkToCache.get(link);
 		if(!nullOrEmpty(cachePage)) {
 			File dataFile = new File(cacheFilePath, cachePage);
-			body = readFile(dataFile);
+			body = getFileContent(dataFile);
 			System.err.println("Returning Cache body");
 		}
 		else {

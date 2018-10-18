@@ -1,6 +1,8 @@
 package com.webcrawler.spiders;
 
 import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -9,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 
 import com.webcrawler.models.Product;
 import com.webcrawler.spiders.interfaces.Crawlable;
+import static com.webcrawler.utilities.SpiderUtility.*;
 
 /**
  * 
@@ -62,20 +65,47 @@ public abstract class Spider implements Crawlable{
 
 	@Override
 	public void addProducts(List<Product> products) {
-		this.products.addAll(products); 
+		if(!nullOrEmpty(products))
+			this.products.addAll(products); 
 
 	}
 
 	@Override
 	public void addProduct(Product product) {
-		this.products.add(product);
+		if(product != null)
+			this.products.add(product);
 
 	}
 
 	@Override
 	public String normalizeURL(String url) {
+		if(nullOrEmpty(url))
+			return "";
 
-		url = url.toLowerCase();
-		return url;
+		URI uri;
+
+		try {
+			uri = new URI(url);
+
+			String scheme = uri.getScheme();
+			if(!nullOrEmpty(scheme) && scheme.toLowerCase().equals("javascript"))
+				return "";
+			String authority = uri.getAuthority();
+			String path = uri.getPath();
+			String queryString = uri.getQuery();
+			String fragment = null;
+
+			return new URI(scheme,
+					authority,
+					path,
+					queryString, 
+					fragment).toString();// Ignore the fragment part of the input url
+					
+		} catch (URISyntaxException e) {
+			System.err.println("Exception for normalizing "+url);
+			e.printStackTrace();
+			return "";
+		}
+
 	}
 }

@@ -3,13 +3,11 @@ package com.webcrawler.utilities;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang.StringUtils;
 /**
  * 
  * @author Sameer Gaware
@@ -23,6 +21,7 @@ public  class SpiderUtility
 	 * @return
 	 */
 	public static boolean nullOrEmpty(String input) {
+		
 		return (input == null || input.length() == 0);
 	}
 
@@ -32,6 +31,7 @@ public  class SpiderUtility
 	 * @return
 	 */
 	public static<T> boolean nullOrEmpty(List<T> list) {
+		
 		return (list == null || list.size() == 0);
 	}
 
@@ -41,8 +41,8 @@ public  class SpiderUtility
 	 * @param arguments
 	 * @return
 	 */
-	public static String stripUrlArgsExcept(String url,List<String> arguments)
-	{
+	public static String stripUrlArgsExcept(String url,List<String> arguments) {
+		
 		if(nullOrEmpty(url))
 			return "";
 
@@ -83,8 +83,8 @@ public  class SpiderUtility
 	 * @return
 	 * @throws IOException
 	 */
-	public static String readFile(File cacheFile)   
-	{
+	public static String getFileContent(File cacheFile) {
+		
 		try {
 			byte[] encoded = Files.readAllBytes(cacheFile.toPath()); 
 			return new String(encoded);
@@ -96,31 +96,22 @@ public  class SpiderUtility
 
 	/**
 	 * This method returns the substring between the startString and endString of the given pageSource
-	 * Before making changes to this method please talk to Abhishesk Jambure
+	 * 
 	 * @param pageSource
 	 * @param startString
 	 * @param endString
 	 * @return 
 	 */
-	public static String getStringWithinDelimiters(String pageSource,String startString,String endString)
-	{
-		if(pageSource == null  || pageSource.length() == 0)
+	public static String getStringWithinDelimiters(String pageSource,String startString,String endString) {
+		
+		if(nullOrEmpty(pageSource))
 			return "";
+		
+		if(nullOrEmpty(startString) || nullOrEmpty(endString))
+			return pageSource;
 
-		if(startString == null || startString.length() == 0 || endString == null || endString.length() == 0)
-			return "";
-
-		int lengthofstartstring = startString.length();
-		int startStringIndex = pageSource.indexOf(startString);
-		int endStringIndex = pageSource.indexOf(endString);
-
-		//System.out.println(s);
-		if(endStringIndex < 0) {
-			return "";
-		}
-		String s = pageSource.substring(startStringIndex+lengthofstartstring,endStringIndex);
-		return s;
-
+		String outString = StringUtils.substringBetween(pageSource, startString, endString);
+		return outString;
 	}
 
 	/**
@@ -129,12 +120,15 @@ public  class SpiderUtility
 	 * @param inputString
 	 * @return
 	 */
-	public static String getPlainStringwithouthtml(String inputString)
-	{
+	public static String getPlainStringwithouthtml(String inputString) {
+		
+		if(nullOrEmpty(inputString))
+			return "";
+				
 		String noHtml = inputString.toString().replaceAll("<[^>]*>", "").replaceAll("\t","").replaceAll("\r","");
-		String Nospace = noHtml.trim();
-		//System.out.println(Nospace);
-		return Nospace;
+		
+		String outputString = noHtml.trim();
+		return outputString;
 	}
 
 	/**
@@ -146,11 +140,16 @@ public  class SpiderUtility
 	 * @return
 	 */
 	public static String getPlainStringWithinDelimiters(String pageSource,String startString, String endString) {
-
-		String output = getStringWithinDelimiters(pageSource, startString, endString);
-		output = getPlainStringwithouthtml(output);
-		return output;
-
+		
+		if(nullOrEmpty(pageSource))
+			return "";
+		
+		if(nullOrEmpty(startString) || nullOrEmpty(endString))
+			return pageSource;
+		
+		String outputString = getStringWithinDelimiters(pageSource, startString, endString);
+		outputString = getPlainStringwithouthtml(outputString);
+		return outputString;
 	}
 
 	/**
@@ -161,30 +160,16 @@ public  class SpiderUtility
 	 * @param endString
 	 * @return
 	 */
-	public static List<String> getListwithinDelimiter(String pageSource,String startString, String endString){
+	public static List<String> getListwithinDelimiter(String pageSource,String startString, String endString) {
 
-		if(startString == null || startString.length() == 0 || endString == null || endString.length() == 0)
-			return Collections.emptyList();	
+		if(nullOrEmpty(pageSource))
+			return Arrays.asList(""); 
+		
+		if(nullOrEmpty(startString) || nullOrEmpty(endString))
+			return Arrays.asList(""); 
 
-
-		ArrayList<String> ls = new ArrayList<String>(); 
-		Pattern pattern = Pattern.compile(startString);
-		Matcher matcher = pattern.matcher(pageSource);
-
-		while(matcher.find()) {
-
-			int startindex = matcher.start();
-			String s = pageSource.substring(startindex);
-			String ss = getStringWithinDelimiters(s, startString, endString);
-
-			ls.add(ss);
-		}
-		//System.out.println(ls);
-
-		return ls;
-
-
-
+		List<String> outputList = Arrays.asList(StringUtils.substringsBetween(pageSource, startString, endString));
+		return outputList;
 	}
 
 	/**
@@ -195,12 +180,44 @@ public  class SpiderUtility
 	 * @param endString
 	 * @return
 	 */
-	public static List<String> getPlainListWithinDelimiters(String pageSource,String startString, String endString){
-
-		List<String> ls = getListwithinDelimiter(pageSource, startString, endString);
-		ls = ls.stream().map(element -> getPlainStringwithouthtml(element)).collect(Collectors.toList());
-		System.out.println(ls);
-		return ls;		
+	public static List<String> getPlainListWithinDelimiters(String pageSource,String startString, String endString) {
+		
+		if(nullOrEmpty(pageSource))
+			return Arrays.asList(""); 
+		
+		if(nullOrEmpty(startString) || nullOrEmpty(endString))
+			return Arrays.asList(""); 
+		
+		List<String> outputList = getListwithinDelimiter(pageSource, startString, endString);
+		outputList = outputList.stream().map(element -> getPlainStringwithouthtml(element)).collect(Collectors.toList());
+		return outputList;		
 	}
 
+	/**
+	 * 
+	 * @param pageSource
+	 * @param substring
+	 * @return
+	 */
+	public static String getStringAfter(String pageSource, String substring) {
+		
+		if(nullOrEmpty(pageSource))
+			return "";
+		if(nullOrEmpty(substring))
+			return pageSource;
+
+		int substringIndex = pageSource.indexOf(substring);
+		if(substringIndex == -1)
+			return "";
+
+		int pageSourceLength = pageSource.length();
+		int substringLength = substring.length();
+		int adjustedIndex = substringIndex + substringLength;
+
+		if(adjustedIndex >= pageSourceLength)
+			return "";
+
+		String outputString = pageSource.substring(adjustedIndex);
+		return outputString;
+	}
 }
